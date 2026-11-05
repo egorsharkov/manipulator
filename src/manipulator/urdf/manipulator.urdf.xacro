@@ -68,13 +68,24 @@
     <child link="base_link"/>
   </joint>
 
+<!-- ===== Стол вращения ===== -->
+  <xacro:box_link name="rotate_base_link" mass="1.0" x="0.18" y="0.18"
+                  z="0.05" rgba="1 0.4 0.05 1" material="orange"/>
+  <joint name="rotate_base_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="rotate_base_link"/>
+    <origin xyz="0 0 ${base_h}"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="${-pi}" upper="${pi}" effort="20" velocity="1.0"/>
+  </joint>
+
   <!-- ===== Плечо ===== -->
   <xacro:box_link name="shoulder_link" mass="0.8" x="0.08" y="0.08"
                   z="${shoulder_l}" rgba="1 0.4 0.05 1" material="orange"/>
   <joint name="shoulder_joint" type="revolute">
-    <parent link="base_link"/>
+    <parent link="rotate_base_link"/>
     <child link="shoulder_link"/>
-    <origin xyz="0 0 ${base_h}"/>
+    <origin xyz="0 0 0.05"/>
     <axis xyz="0 1 0"/>
     <limit lower="${-pi/2}" upper="${pi/2}" effort="20" velocity="1.0"/>
   </joint>
@@ -130,8 +141,9 @@
   <hardware>
     <plugin>gazebo_ros2_control/GazeboSystem</plugin>
   </hardware>
+  <xacro:pos_joint name="rotate_base_joint"/>
   <xacro:pos_joint name="shoulder_joint"/>
-   <xacro:pos_joint name="elbow_joint"/>
+  <xacro:pos_joint name="elbow_joint"/>
   <xacro:pos_joint name="wrist_joint"/>
   <xacro:pos_joint name="left_grip_joint"/>
   <xacro:pos_joint name="right_grip_joint"/> 

@@ -7,6 +7,9 @@
   <maintainer email="fizmat3.14159265@gmail.com">shark</maintainer>
   <license>TODO: License declaration</license>
 
+  <depend>rclcpp</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>sensor_msgs</depend>
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <test_depend>ament_lint_auto</test_depend>
