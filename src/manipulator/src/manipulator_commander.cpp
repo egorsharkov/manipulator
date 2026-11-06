@@ -6,46 +6,88 @@
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
-#include "trajectory_msgs/msg/joint_trajectory.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
+#include "control_msgs/action/follow_joint_trajectory.hpp"
 #include "trajectory_msgs/msg/joint_trajectory_point.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
 
 using namespace std::chrono_literals;
 
 class Controller : public rclcpp :: Node
 {
     public:
+    using FJT = control_msgs::action::FollowJointTrajectory;
+    using GoalHandleFJT = rclcpp_action::ClientGoalHandle<FJT>;
+
     Controller() : Node("controller")
     {
-    traj_pub_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(
-        "/arm_controller/joint_trajectory", 10
+    client = rclcpp_action::create_client<FJT>(
+        this, "/arm_controller/follow_joint_trajectory"
     );
-    timer_ = create_wall_timer(10s, [this]() { control(); });
+    timer_ = create_wall_timer(1s, [this]() { send_goal(); });
+    RCLCPP_INFO(this->get_logger(), "Manipulator commander started.");
     }
 private:
-    void control()
+    void send_goal()
     {
-        if (traj_pub_->get_subscription_count() == 0) {
-            RCLCPP_WARN(get_logger(), "Waiting for arm_controller...");
+        if (!client ->wait_for_action_server(5s)) {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available");
             return;                      
         }
-        auto traj = trajectory_msgs::msg::JointTrajectory();
-        traj.joint_names = {"shoulder_joint", "elbow_joint", "wrist_joint"};
+        auto goal = FJT::Goal();
+        goal.trajectory.joint_names = {"rotate_base_joint", "shoulder_joint", "elbow_joint", "wrist_joint"};
         trajectory_msgs::msg::JointTrajectoryPoint p1 , p2 , p3;
-        p1.positions = {0.8 , 0.6, 0.3 };
+        p1.positions = {1.5, 0.8 , 0.6, 0.3 };
         p1.time_from_start = rclcpp::Duration::from_seconds(3.0);
 
-        p2.positions = {0 , 0, 0 };
+        p2.positions = { 0 ,0 , 0, 0 };
         p2.time_from_start = rclcpp::Duration::from_seconds(6.0);
 
-        p3.positions = {-0.8 , -0.6, -0.3 };
+        p3.positions = {-1.5 ,-0.8 , -0.6, -0.3 };
         p3.time_from_start = rclcpp::Duration::from_seconds(9.0);
 
-        traj.points = {p1, p2 , p3};
-        traj_pub_->publish(traj);
-        RCLCPP_INFO(this->get_logger(), "trajectory sent");
+        goal.trajectory.points = {p1, p2 , p3};
+        auto options = rclcpp_action::Client<FJT>::SendGoalOptions();
+        
+
+
+    options.goal_response_callback =
+      [this](const GoalHandleFJT::SharedPtr & handle) {
+        if (!handle) {
+          RCLCPP_ERROR(this->get_logger(), "Goal rejected");
+        } else {
+          RCLCPP_INFO(this->get_logger(), "Goal accepted");
+        }
+      };
+
+    options.feedback_callback =
+      [this](GoalHandleFJT::SharedPtr,
+             const std::shared_ptr<const FJT::Feedback> feedback) {
+        RCLCPP_INFO(this->get_logger(), "Feedback: %zu joints",
+                    feedback->joint_names.size());
+      };
+
+    options.result_callback =
+      [this](const GoalHandleFJT::WrappedResult & result) {
+        switch (result.code) {
+          case rclcpp_action::ResultCode::SUCCEEDED:
+            RCLCPP_INFO(this->get_logger(), "Done!");
+            break;
+          case rclcpp_action::ResultCode::ABORTED:
+            RCLCPP_ERROR(this->get_logger(), "Goal aborted");
+            break;
+          case rclcpp_action::ResultCode::CANCELED:
+            RCLCPP_WARN(this->get_logger(), "Goal canceled");
+            break;
+          default:
+            RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+            break;
+        }
+        rclcpp::shutdown();  // задача выполнена, завершаем узел
+      };
+      client->async_send_goal(goal, options);
+      RCLCPP_INFO(this->get_logger(), "Goal sent.");
     }
-     rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_pub_;
+    rclcpp_action::Client<FJT>::SharedPtr client;
     rclcpp::TimerBase::SharedPtr timer_;
 };
 

@@ -31,7 +31,7 @@ def generate_launch_description():
     spawn = Node(
         package='gazebo_ros', executable='spawn_entity.py', output='screen',
         arguments=['-topic', 'robot_description', '-entity', 'manipulator',
-                   '-x', '0', '-y', '0', '-z', '0'])
+                   '-x', '0', '-y', '0', '-z', '0', '-timeout', '120'])
 
     joint_state_broadcaster_spawner = Node(
         package="controller_manager",

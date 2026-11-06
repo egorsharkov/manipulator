@@ -7,15 +7,17 @@ endif()
 
 # find dependencies
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(trajectory_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
 
 add_executable(controller src/manipulator_commander.cpp)
 ament_target_dependencies(controller
   rclcpp
+  rclcpp_action
   trajectory_msgs
-  sensor_msgs
+  control_msgs
 )
 # uncomment the following section in order to fill in
 # further dependencies manually.
